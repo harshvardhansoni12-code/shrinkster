@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
-
+import { nanoid } from "nanoid";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const shortcode = uuidv4();
+    const shortcode = nanoid(6);
     const urlFound = await prisma.url.findUnique({
       where: {
         url: body.url,
