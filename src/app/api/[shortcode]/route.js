@@ -1,18 +1,25 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req, { params }) {
-  const { shortcode } = params;
+  const { shortcode } = await params;
   try {
     const urlFound = await prisma.url.findUnique({
-      where: {
-        shortcode,
-      },
+      where: { shortcode },
     });
+
     if (!urlFound) {
-      return Response.json({ error: "url not found" }, { status: 405 });
+      return Response.json(
+        { error: "Short URL not found" },
+        { status: 404 }
+      );
     }
-    return Response.redirect(urlFound.url);
+
+    return Response.redirect(urlFound.url, 302);
   } catch (e) {
-    return Response.json({ error: "something went wrong" }, { status: 500 });
+    console.error("Error resolving shortcode:", e);
+    return Response.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }

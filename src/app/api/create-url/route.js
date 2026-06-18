@@ -1,36 +1,71 @@
 import { prisma } from "@/lib/prisma";
-import { v4 as uuidv4 } from "uuid";
 import { nanoid } from "nanoid";
+
 export async function POST(req) {
   try {
     const body = await req.json();
-    const shortcode = nanoid(6);
+    const { url } = body;
+
+    // Validate URL
+    if (!url || typeof url !== "string") {
+      return Response.json(
+        { error: "Please provide a valid URL" },
+        { status: 400 }
+      );
+    }
+
+    // Basic URL format validation
+    try {
+      new URL(url);
+    } catch {
+      return Response.json(
+        { error: "Invalid URL format. Please include http:// or https://" },
+        { status: 400 }
+      );
+    }
+
+    // Check if this URL has already been shortened
     const urlFound = await prisma.url.findUnique({
-      where: {
-        url: body.url,
-      },
+      where: { url },
     });
-    if (!urlFound) {
+
+    if (urlFound) {
+      // URL already exists, return existing shortcode
+      const origin = new URL(req.url).origin;
       return Response.json({
-        shortUrl: `https://mydomain.com/${urlFound.shortcode}`,
+        shortUrl: `${origin}/api/${urlFound.shortcode}`,
+        shortcode: urlFound.shortcode,
+        isExisting: true,
       });
     }
+
+    // Create new short URL
+    const shortcode = nanoid(6);
     const urlCreated = await prisma.url.create({
-      data: {
-        url: body.url,
-        shortcode,
-      },
+      data: { url, shortcode },
     });
+
     if (!urlCreated) {
-      return Response.json({ error: "url not created" }, { status: 405 });
+      return Response.json(
+        { error: "Failed to create short URL" },
+        { status: 500 }
+      );
     }
+
+    const origin = new URL(req.url).origin;
     return Response.json(
-      { shortUrl: `https://mydomain.com/${shortcode}` },
       {
-        status: 201,
+        shortUrl: `${origin}/api/${shortcode}`,
+        shortcode,
+        isExisting: false,
       },
+      { status: 201 }
     );
   } catch (e) {
-    return Response.json({ error: "something went worng" }, { status: 500 });
+    console.error("Error creating short URL:", e);
+    return Response.json(
+      { error: "Something went wrong. Please try again." },
+      { status: 500 }
+    );
   }
 }
