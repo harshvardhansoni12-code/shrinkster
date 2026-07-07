@@ -3,7 +3,11 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <>
-      <div className="bg-gradient-mesh" />
+      <div className="bg-gradient-mesh">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+      </div>
       <main
         style={{
           position: "relative",

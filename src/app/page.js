@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 // ===== Icon Components =====
 function LinkIcon() {
@@ -127,6 +127,23 @@ function ArrowRightIcon() {
   );
 }
 
+function SparkleIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+    </svg>
+  );
+}
+
 // ===== Feature Data =====
 const features = [
   {
@@ -155,6 +172,147 @@ const stats = [
   { value: "99.9%", label: "Uptime" },
   { value: "<50ms", label: "Response Time" },
 ];
+
+// ===== Particle Background =====
+function ParticleField() {
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    // Seeded pseudo-random to avoid hydration mismatch
+    const generated = Array.from({ length: 30 }, (_, i) => {
+      const seed = (i + 1) * 137.508;
+      const r1 = ((Math.sin(seed) * 10000) % 1 + 1) % 1;
+      const r2 = ((Math.sin(seed * 2) * 10000) % 1 + 1) % 1;
+      const r3 = ((Math.sin(seed * 3) * 10000) % 1 + 1) % 1;
+      const r4 = ((Math.sin(seed * 4) * 10000) % 1 + 1) % 1;
+      return {
+        id: i,
+        left: `${r1 * 100}%`,
+        delay: `${r2 * 15}s`,
+        duration: `${12 + r3 * 18}s`,
+        size: r4 > 0.7 ? 3 : 2,
+        opacity: 0.3 + r4 * 0.4,
+      };
+    });
+    setParticles(generated);
+  }, []);
+
+  return (
+    <>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="particle"
+          style={{
+            left: p.left,
+            bottom: "-5%",
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            opacity: p.opacity,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+// ===== Animated Counter =====
+function AnimatedStat({ value, label }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="stat-item">
+      <div
+        className="gradient-text stat-glow"
+        style={{
+          fontSize: "2rem",
+          fontWeight: 800,
+          letterSpacing: "-0.03em",
+          marginBottom: "0.375rem",
+          transform: isVisible ? "translateY(0)" : "translateY(20px)",
+          opacity: isVisible ? 1 : 0,
+          transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: "0.8125rem",
+          color: "var(--text-muted)",
+          fontWeight: 500,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          transform: isVisible ? "translateY(0)" : "translateY(12px)",
+          opacity: isVisible ? 1 : 0,
+          transition: "all 0.8s 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// ===== Feature Card with mouse tracking =====
+function FeatureCard({ icon, title, description, index }) {
+  const cardRef = useRef(null);
+
+  const handleMouseMove = useCallback((e) => {
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    cardRef.current.style.setProperty("--mouse-x", `${x}%`);
+    cardRef.current.style.setProperty("--mouse-y", `${y}%`);
+  }, []);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`feature-card animate-slide-up-delay-${index + 1}`}
+      id={`feature-${title.toLowerCase().replace(/\s+/g, "-")}`}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="feature-icon">{icon}</div>
+      <h3
+        style={{
+          fontSize: "1.125rem",
+          fontWeight: 600,
+          marginBottom: "0.5rem",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          color: "var(--text-secondary)",
+          fontSize: "0.875rem",
+          lineHeight: 1.7,
+        }}
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
 
 // ===== Main Component =====
 export default function Home() {
@@ -222,45 +380,27 @@ export default function Home() {
 
   return (
     <>
-      {/* Background gradient mesh */}
-      <div className="bg-gradient-mesh" />
+      {/* ===== Animated Background ===== */}
+      <div className="bg-gradient-mesh">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+        <div className="orb orb-4" />
+        <ParticleField />
+      </div>
 
       <main className="relative z-10 flex flex-col flex-1">
         {/* ===== Navbar ===== */}
-        <nav
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "1.25rem 2rem",
-            borderBottom: "1px solid var(--border-glass)",
-            backdropFilter: "blur(12px)",
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            background: "rgba(3, 0, 20, 0.7)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "10px",
-                background:
-                  "linear-gradient(135deg, var(--accent-start), var(--accent-end))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+        <nav className="nav-bar">
+          <div className="nav-logo">
+            <div className="nav-logo-icon">
               <LinkIcon />
             </div>
             <span
               style={{
-                fontSize: "1.25rem",
+                fontSize: "1.3rem",
                 fontWeight: 700,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.03em",
               }}
               className="gradient-text"
             >
@@ -271,25 +411,9 @@ export default function Home() {
             href="https://github.com"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: "0.875rem",
-              textDecoration: "none",
-              padding: "0.5rem 1rem",
-              borderRadius: "0.625rem",
-              border: "1px solid var(--border-glass)",
-              transition: "all 0.25s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-glass-hover)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-glass)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
+            className="nav-link"
           >
-            GitHub ↗
+            <span style={{ position: "relative", zIndex: 1 }}>GitHub ↗</span>
           </a>
         </nav>
 
@@ -300,39 +424,17 @@ export default function Home() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "5rem 1.5rem 3rem",
+            padding: "6rem 1.5rem 3rem",
             textAlign: "center",
-            maxWidth: "720px",
+            maxWidth: "760px",
             margin: "0 auto",
             width: "100%",
           }}
         >
           {/* Badge */}
-          <div
-            className="animate-fade-in"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.375rem 1rem",
-              borderRadius: "100px",
-              background: "rgba(139, 92, 246, 0.1)",
-              border: "1px solid rgba(139, 92, 246, 0.2)",
-              fontSize: "0.8125rem",
-              color: "var(--accent-mid)",
-              fontWeight: 500,
-              marginBottom: "1.5rem",
-            }}
-          >
-            <span
-              style={{
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                background: "var(--accent-mid)",
-                animation: "fade-in 1.5s ease-in-out infinite alternate",
-              }}
-            />
+          <div className="badge animate-fade-in">
+            <span className="badge-dot" />
+            <SparkleIcon />
             Free & Open Source
           </div>
 
@@ -340,11 +442,11 @@ export default function Home() {
           <h1
             className="animate-slide-up"
             style={{
-              fontSize: "clamp(2.5rem, 6vw, 4rem)",
+              fontSize: "clamp(2.5rem, 6vw, 4.25rem)",
               fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: "-0.04em",
-              marginBottom: "1.25rem",
+              lineHeight: 1.08,
+              letterSpacing: "-0.045em",
+              marginBottom: "1.5rem",
             }}
           >
             Make Your Links{" "}
@@ -355,11 +457,11 @@ export default function Home() {
           <p
             className="animate-slide-up-delay-1"
             style={{
-              fontSize: "1.125rem",
+              fontSize: "1.15rem",
               color: "var(--text-secondary)",
-              lineHeight: 1.7,
-              maxWidth: "540px",
-              marginBottom: "2.5rem",
+              lineHeight: 1.75,
+              maxWidth: "560px",
+              marginBottom: "3rem",
             }}
           >
             Paste any long URL and get a clean, shareable link in seconds. Fast,
@@ -368,7 +470,7 @@ export default function Home() {
 
           {/* ===== URL Input Card ===== */}
           <div
-            className="glass-card animate-slide-up-delay-2"
+            className="glass-card hero-card animate-slide-up-delay-2"
             style={{
               width: "100%",
               padding: "2rem",
@@ -377,6 +479,7 @@ export default function Home() {
             <form
               onSubmit={handleSubmit}
               id="shorten-form"
+              className="hero-form"
               style={{
                 display: "flex",
                 gap: "0.75rem",
@@ -487,9 +590,10 @@ export default function Home() {
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      transition: "color 0.3s",
                     }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "var(--accent-mid)")
+                      (e.currentTarget.style.color = "var(--accent-end)")
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.color = "var(--text-primary)")
@@ -530,7 +634,12 @@ export default function Home() {
 
         {/* ===== Divider ===== */}
         <div
-          style={{ maxWidth: "720px", margin: "2rem auto", width: "100%", padding: "0 1.5rem" }}
+          style={{
+            maxWidth: "760px",
+            margin: "2.5rem auto",
+            width: "100%",
+            padding: "0 1.5rem",
+          }}
         >
           <div className="shimmer-line" />
         </div>
@@ -548,7 +657,7 @@ export default function Home() {
             className="animate-slide-up"
             style={{
               textAlign: "center",
-              fontSize: "1.75rem",
+              fontSize: "1.85rem",
               fontWeight: 700,
               letterSpacing: "-0.03em",
               marginBottom: "0.75rem",
@@ -561,6 +670,7 @@ export default function Home() {
               textAlign: "center",
               color: "var(--text-secondary)",
               fontSize: "1rem",
+              lineHeight: 1.7,
               marginBottom: "3rem",
               maxWidth: "480px",
               margin: "0 auto 3rem",
@@ -572,52 +682,18 @@ export default function Home() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))",
               gap: "1.25rem",
             }}
           >
             {features.map((feature, index) => (
-              <div
+              <FeatureCard
                 key={feature.title}
-                className={`feature-card animate-slide-up-delay-${index + 1}`}
-                id={`feature-${feature.title.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <div
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "12px",
-                    background: "rgba(139, 92, 246, 0.1)",
-                    border: "1px solid rgba(139, 92, 246, 0.15)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--accent-mid)",
-                    marginBottom: "1.25rem",
-                  }}
-                >
-                  {feature.icon}
-                </div>
-                <h3
-                  style={{
-                    fontSize: "1.125rem",
-                    fontWeight: 600,
-                    marginBottom: "0.5rem",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {feature.title}
-                </h3>
-                <p
-                  style={{
-                    color: "var(--text-secondary)",
-                    fontSize: "0.875rem",
-                    lineHeight: 1.65,
-                  }}
-                >
-                  {feature.description}
-                </p>
-              </div>
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                index={index}
+              />
             ))}
           </div>
         </section>
@@ -635,36 +711,17 @@ export default function Home() {
             className="glass-card"
             style={{
               padding: "2.5rem 2rem",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "1rem",
-              textAlign: "center",
             }}
           >
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <div
-                  className="gradient-text stat-glow"
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 800,
-                    letterSpacing: "-0.03em",
-                    marginBottom: "0.25rem",
-                  }}
-                >
-                  {stat.value}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.8125rem",
-                    color: "var(--text-muted)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+            <div className="stats-grid">
+              {stats.map((stat) => (
+                <AnimatedStat
+                  key={stat.label}
+                  value={stat.value}
+                  label={stat.label}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
@@ -684,7 +741,7 @@ export default function Home() {
             }}
           >
             Built with{" "}
-            <span style={{ color: "var(--accent-mid)" }}>♥</span> by{" "}
+            <span style={{ color: "var(--accent-end)" }}>♥</span> by{" "}
             <span className="gradient-text" style={{ fontWeight: 600 }}>
               Shrinkster
             </span>{" "}
