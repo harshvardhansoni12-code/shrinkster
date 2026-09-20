@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Before deploying, add `DATABASE_URL` to the Vercel project environment variables for
+the Production environment. It must be the connection string for the PostgreSQL
+database that stores shortened URLs. Vercel uses the `vercel-build` script to generate
+Prisma and apply the migrations in `prisma/migrations`.
+
+After adding the variable, redeploy the project. A missing `DATABASE_URL` or an
+unreachable database will make the API return a server error even though the page
+itself loads successfully.
